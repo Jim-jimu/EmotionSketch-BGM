@@ -57,6 +57,10 @@ EMOPIA quadrant centroids supply pseudo-labels during adapter training. At use t
 
 ### 2. Adapt visual conditions with a gated residual
 
+![EmotionSketch adapter architecture: emotion sketch and Q-label encoding, feature fusion, gated residual injection, and the frozen Diff-BGM backbone.](assets/adapter-architecture.png)
+
+*Adapter architecture: continuous emotion sketches and discrete labels are fused and injected into visual conditions through a learned gate. Click the image to view it at full resolution.*
+
 Each sample receives a **32 × 16** sketch combining note activity, register statistics, chord summaries, visual/caption feature norms, shot count, and valence/arousal proxies. For visual conditions `V`, sketch `S`, and target label `q`:
 
 ```math

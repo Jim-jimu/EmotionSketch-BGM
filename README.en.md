@@ -60,13 +60,13 @@ EMOPIA quadrant centroids supply pseudo-labels during adapter training. At use t
 
 ### 2. Adapt visual conditions with a gated residual
 
-Each sample receives a **32 × 16** sketch combining note activity, register statistics, chord summaries, visual/caption feature norms, shot count, and valence/arousal proxies. For visual conditions $V$, sketch $S$, and target label $q$:
+Each sample receives a **32 × 16** sketch combining note activity, register statistics, chord summaries, visual/caption feature norms, shot count, and valence/arousal proxies. For visual conditions `V`, sketch `S`, and target label `q`:
 
 ```math
 V' = V + \sigma(g)\,f_{\mathrm{out}}\!\left(f_{\mathrm{sketch}}(S) + \alpha E(q)\right)
 ```
 
-$E(q)$ is broadcast over time, $\alpha$ corresponds to `label_scale`, and $g$ is a learned gate. Input and output both have shape **[B, 32, 512]**. Training updates the adapter while retaining the backbone's denoising objective.
+`E(q)` is broadcast over time, α corresponds to `label_scale`, and `g` is a learned gate. Input and output both have shape **[B, 32, 512]**. Training updates the adapter while retaining the backbone's denoising objective.
 
 ### 3. Use emotion features to guide candidate selection
 

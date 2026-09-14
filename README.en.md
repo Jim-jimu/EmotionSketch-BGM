@@ -2,43 +2,65 @@
 
 # EmotionSketch-BGM
 
-### Natural-language emotion control for symbolic video background music
+### One video. Different emotions. Symbolic background music.
 
-**Emotion sketch adaptation · Symbolic music generation · Evaluator-guided decoding**
+Emotion sketch adaptation · Natural-language control · MIDI-based evaluation
 
-[简体中文](README.md) | **English**
+[简体中文](README.md) · **English**
 
-[Contributions](#contributions) · [Method & Pipeline](#method) · [Results](#results) · [Quick Start](#quickstart) · [Code](#code)
+**[Contributions](#contributions)** &nbsp; / &nbsp; **[Method](#method)** &nbsp; / &nbsp; **[Results](#results)** &nbsp; / &nbsp; **[Quick Start](#quickstart)** &nbsp; / &nbsp; **[Code](#code)**
 
 </div>
 
+EmotionSketch-BGM connects natural-language emotion intent to symbolic music generation through a lightweight adapter on frozen **Diff-BGM**. Three modules organize the work: **MFAE emotion evaluation, EmotionSketch condition adaptation, and Prompt-to-Q text routing**.
+
+<table align="center">
+<tr>
+<td align="center" width="300">
+<h3>537,121</h3>
+<b>Trainable parameters</b><br>
+<sub>Gated residual adapter</sub>
+</td>
+<td align="center" width="300">
+<h3>1.295%</h3>
+<b>Relative to backbone</b><br>
+<sub>Frozen Diff-BGM</sub>
+</td>
+<td align="center" width="300">
+<h3>32.17% → 33.70%</h3>
+<b>Target-quadrant hit rate</b><br>
+<sub><b>+1.53 pp</b> at matched budgets</sub>
+</td>
+</tr>
+</table>
+
+![EmotionSketch adapter architecture: emotion sketch and Q-label encoding, feature fusion, gated residual injection, and the frozen Diff-BGM backbone.](assets/adapter-architecture.png)
+
+*Adapter architecture: continuous emotion sketches and discrete labels are fused and injected into visual conditions through a learned gate. Click the image to view it at full resolution.*
+
+> **Experimental evidence** · 100 validation video clips; 20,400 MIDI candidates each for Adapter and baseline. MFAE defines target hits, measured before best-candidate selection; pp denotes percentage points. [May 2026 experiment records →](docs/results-summary.json)
+
 ---
 
-EmotionSketch-BGM studies how the same video can support different musical emotions. It connects **text-to-emotion routing, lightweight condition adaptation, and MIDI-based evaluation** into a research workflow with trainable components and explicit controls.
-
-On a frozen Diff-BGM backbone, the adapter introduces **537,121 trainable parameters**. Across 100 validation clips with matched candidate budgets, target-quadrant agreement rises from **32.17% to 33.70%** before selection. Prompt-to-Q maps natural-language emotion descriptions to a **Q1–Q4 probability distribution**, providing an explicit target label for the adapter.
-
-| Lightweight adaptation | Natural-language interface | Candidate distribution | Evaluation scale |
-| :---: | :---: | :---: | :---: |
-| **1.295%** | **Q1–Q4** | **+1.53 pp** | **20,400 × 2** |
-| Adapter / frozen-backbone parameters | Four-quadrant emotion distribution | MFAE target-hit improvement | Candidates per adapter / baseline condition |
-
-> Results come from the project's May 2026 experiments. Target hits are defined by MFAE and measured before best-candidate selection; `pp` denotes percentage points. [Aggregate data and source records →](docs/results-summary.json)
-
 <a id="contributions"></a>
-## Contributions
+## 01 · Contributions
 
-**01 · MFAE MIDI emotion evaluator**<br>
+### 01 · MFAE MIDI emotion evaluator
+
 A KNN classifier trained on 48 EMOPIA MIDI features provides four-quadrant emotion classification. MFAE serves as a shared scoring criterion for comparing the emotion sketch adapter against the no-adapter baseline and for selecting target MIDI candidates.
 
-**02 · Parameter-efficient EmotionSketch-BGM adapter**<br>
+### 02 · Parameter-efficient EmotionSketch-BGM adapter
+
 Continuous 16-dimensional sketches and discrete Q-label embeddings are mapped into a 512-dimensional condition space. A learned gate injects the residual into the frozen Diff-BGM visual condition path. The adapter contains 537,121 trainable parameters, equivalent to 1.295% of the frozen backbone.
 
-**03 · Prompt-to-Q natural-language router**<br>
+### 03 · Prompt-to-Q natural-language router
+
 A character n-gram linear softmax classifier maps descriptions such as “bright and excited,” “tense and intense,” “sad and low,” and “calm and soothing” to Q1–Q4 probabilities and then an adapter emotion label. The implemented router processes Chinese prompts, runs on the Python standard library, and requires no online LLM calls.
 
+---
+
 <a id="method"></a>
-## Method & Pipeline
+## 02 · Method & Pipeline
 
 ![EmotionSketch-BGM pipeline: text routing, sketch adaptation, a frozen backbone, MIDI candidate generation, and MFAE selection.](assets/pipeline.svg)
 
@@ -53,13 +75,14 @@ A character n-gram linear softmax classifier maps descriptions such as “bright
 | Q3 | Negative | Low | Sad, lonely, melancholic | 2 |
 | Q4 | Positive | Low | Warm, calm, soothing | 3 |
 
+<details>
+<summary>Training labels and ID conventions</summary>
+
 EMOPIA quadrant centroids supply pseudo-labels during adapter training. At use time, a target can be predicted by Prompt-to-Q or specified explicitly. The `proxy` mode is a within-batch threshold baseline; its IDs do not directly represent EMOPIA quadrants.
 
+</details>
+
 ### 2. Adapt visual conditions with a gated residual
-
-![EmotionSketch adapter architecture: emotion sketch and Q-label encoding, feature fusion, gated residual injection, and the frozen Diff-BGM backbone.](assets/adapter-architecture.png)
-
-*Adapter architecture: continuous emotion sketches and discrete labels are fused and injected into visual conditions through a learned gate. Click the image to view it at full resolution.*
 
 Each sample receives a **32 × 16** sketch combining note activity, register statistics, chord summaries, visual/caption feature norms, shot count, and valence/arousal proxies. For visual conditions `V`, sketch `S`, and target label `q`:
 
@@ -69,11 +92,16 @@ V' = V + \sigma(g)\,f_{\mathrm{out}}\!\left(f_{\mathrm{sketch}}(S) + \alpha E(q)
 
 `E(q)` is broadcast over time, α corresponds to `label_scale`, and `g` is a learned gate. Input and output both have shape **[B, 32, 512]**. Training updates the adapter while retaining the backbone's denoising objective.
 
+<details>
+<summary>Parameter breakdown</summary>
+
 | Component | Parameters |
 | --- | ---: |
 | EmotionSketch Adapter | **537,121** |
 | Frozen Diff-BGM SDF backbone | 41,479,098 |
 | Adapter / backbone ratio | **1.295%** |
+
+</details>
 
 ### 3. Use emotion features to guide candidate selection
 
@@ -81,8 +109,17 @@ MFAE establishes an emotion-scoring space using **48 EMOPIA MIDI features**, inc
 
 Candidate evaluation combines neighborhood probabilities and centroid scores to measure alignment with the requested emotion and select a matching MIDI candidate. MFAE also supplies a shared criterion for comparing target-quadrant hits between Adapter and no-adapter conditions, connecting lightweight conditioning to interpretable output evaluation.
 
+---
+
 <a id="results"></a>
-## Experiments & Results
+## 03 · Experiments & Results
+
+| Research question | Key result |
+| --- | --- |
+| **Can MFAE recognize emotion?** | Accuracy **0.6279**; Macro-F1 **0.6285** |
+| **Does Q-label change the condition output?** | Full RMSE **0.099496**; **0** with the label branch disabled |
+| **Do candidates shift toward the target?** | **312** additional target hits at the same budget |
+| **Can text map to emotion labels?** | Prompt-to-Q Accuracy **1.0000** on 100 cleaned validation prompts |
 
 ### MFAE: four-quadrant MIDI emotion classification
 
@@ -92,10 +129,18 @@ Candidate evaluation combines neighborhood probabilities and centroid scores to 
 | --- | ---: |
 | Accuracy | **0.6279** |
 | Macro-F1 | **0.6285** |
-| Q1 Recall | 0.7755 |
-| Q2 Recall | 0.6038 |
-| Q3 Recall | 0.5294 |
-| Q4 Recall | 0.6129 |
+
+<details>
+<summary>Recall by quadrant</summary>
+
+| Quadrant | Recall |
+| --- | ---: |
+| Q1 | 0.7755 |
+| Q2 | 0.6038 |
+| Q3 | 0.5294 |
+| Q4 | 0.6129 |
+
+</details>
 
 Accuracy measures correct classifications, Macro-F1 averages F1 across four classes, and Recall measures recovery within each quadrant. MFAE provides a consistent classification and evaluation criterion for generated candidates.
 
@@ -146,8 +191,10 @@ EmotionSketch-BGM organizes video-music emotion control into three verifiable mo
 
 [Aggregate results, confusion matrices, and source records →](docs/results-summary.json)
 
+---
+
 <a id="quickstart"></a>
-## Quick Start
+## 04 · Quick Start
 
 Run the Chinese rule-based routing example without additional dependencies:
 
@@ -162,8 +209,10 @@ This example uses the rule baseline; Prompt-to-Q results above use the trained c
 
 **[Installation, router training, adapter training, and decoding commands →](docs/USAGE.en.md)**
 
+---
+
 <a id="code"></a>
-## Code Map
+## 05 · Code Map
 
 | Capability | Implementation |
 | --- | --- |
@@ -180,3 +229,7 @@ The repository contains **18 core source files** with project and reproduction d
 ## Acknowledgements
 
 The video-music backbone builds on [Diff-BGM](https://github.com/sizhelee/Diff-BGM), and emotion data comes from [EMOPIA](https://github.com/annahung31/EMOPIA). The project-specific [shot-count patch](patches/diffbgm-shot-count.patch) is included. Third-party resources retain their own usage terms; this repository has not specified an open-source license.
+
+<p align="center">
+<a href="#emotionsketch-bgm">Back to top</a> · <a href="docs/USAGE.en.md">Usage guide</a> · <a href="docs/results-summary.json">Experiment records</a>
+</p>

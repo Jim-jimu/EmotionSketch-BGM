@@ -2,43 +2,65 @@
 
 # EmotionSketch-BGM
 
-### 用自然语言表达情绪，让视频配乐拥有可解释的控制接口
+### 同一视频，不同情绪的符号音乐配乐
 
-**情绪草图适配器 · 符号音乐生成 · 评价器引导解码**
+情绪草图适配器 · 自然语言情绪控制 · MIDI 评价引导
 
-**简体中文** | [English](README.en.md)
+**简体中文** · [English](README.en.md)
 
-[核心贡献](#contributions) · [方法与流程](#method) · [实验结果](#results) · [快速开始](#quickstart) · [代码导航](#code)
+**[核心贡献](#contributions)** &nbsp; / &nbsp; **[方法设计](#method)** &nbsp; / &nbsp; **[实验结果](#results)** &nbsp; / &nbsp; **[快速开始](#quickstart)** &nbsp; / &nbsp; **[代码导航](#code)**
 
 </div>
 
+EmotionSketch-BGM 在冻结的 **Diff-BGM** 上，以轻量情绪草图适配器连接自然语言情绪意图与符号音乐生成。项目围绕三个模块展开：**MFAE 情绪评价、EmotionSketch 条件适配、Prompt-to-Q 文本路由**。
+
+<table align="center">
+<tr>
+<td align="center" width="300">
+<h3>537,121</h3>
+<b>可训练参数</b><br>
+<sub>门控残差适配器</sub>
+</td>
+<td align="center" width="300">
+<h3>1.295%</h3>
+<b>相对骨干参数量</b><br>
+<sub>冻结 Diff-BGM</sub>
+</td>
+<td align="center" width="300">
+<h3>32.17% → 33.70%</h3>
+<b>候选目标命中率</b><br>
+<sub>同预算提升 <b>1.53 pp</b></sub>
+</td>
+</tr>
+</table>
+
+![EmotionSketch 适配器结构：情绪草图与 Q-label 编码、特征融合、门控残差注入及冻结的 Diff-BGM 骨干。](assets/adapter-architecture.png)
+
+*适配器结构图：连续情绪草图与离散标签融合后，经可学习门控注入视觉条件。点击图片可查看原图。*
+
+> **实验依据** · 100 个验证视频片段，Adapter 与 baseline 各生成 20,400 个 MIDI 候选。目标命中率由 MFAE 定义，统计于最佳候选筛选之前；pp 为百分点。[2026 年 5 月实验汇总 →](docs/results-summary.json)
+
 ---
 
-EmotionSketch-BGM 是一个面向视频背景音乐的情绪控制研究项目。围绕“同一视频如何表达不同情绪”，项目将**文本情绪路由、轻量条件适配和 MIDI 评价引导**组织成一套可检查、可训练、可比较的研究流程。
-
-在冻结的 Diff-BGM 骨干上，EmotionSketch 以 **537,121 个可训练参数**注入情绪条件；在 100 个验证片段的同预算实验中，候选池目标象限命中率从 **32.17% 提升至 33.70%**。Prompt-to-Q 将自然语言情绪描述映射为 **Q1–Q4 概率分布**，为适配器提供明确的目标标签。
-
-| 轻量适配 | 自然语言入口 | 候选分布控制 | 实验规模 |
-| :---: | :---: | :---: | :---: |
-| **1.295%** | **Q1–Q4** | **+1.53 pp** | **20,400 × 2** |
-| 适配器 / 冻结骨干参数比 | 四象限情绪概率分布 | MFAE 目标命中率提升 | 适配器与基线各自的候选数 |
-
-> 数据来自 2026 年 5 月项目实验。命中率按 MFAE 评价器定义，统计于最佳候选筛选之前；`pp` 表示百分点。[查看汇总数据与来源记录 →](docs/results-summary.json)
-
 <a id="contributions"></a>
-## 核心贡献
+## 01 · 核心贡献
 
-**01 · MFAE MIDI 情绪评价器**<br>
+### 01 · MFAE MIDI 情绪评价器
+
 基于 EMOPIA MIDI 的 48 维特征训练 KNN 四象限情绪分类器，提供统一的情绪评分依据，用于比较情绪草图适配器与无适配器 baseline，并支持目标 MIDI 候选选择。
 
-**02 · 参数高效的 EmotionSketch-BGM 情绪草图适配器**<br>
+### 02 · 参数高效的 EmotionSketch-BGM 情绪草图适配器
+
 将 16 维连续情绪草图与离散 Q-label 嵌入映射到 512 维条件空间，通过可学习门控，以残差形式注入冻结 Diff-BGM 的视觉条件路径。适配器包含 537,121 个可训练参数，占冻结骨干参数量的 1.295%。
 
-**03 · Prompt-to-Q 自然语言路由器**<br>
+### 03 · Prompt-to-Q 自然语言路由器
+
 实现字符 n-gram 与线性 softmax 分类器，将“明亮、兴奋”“紧张、激烈”“忧伤、低落”“平静、舒缓”等自然语言描述转为 Q1–Q4 概率分布，再映射为适配器的情绪标签。路由器使用 Python 标准库运行，无需在线调用大语言模型。
 
+---
+
 <a id="method"></a>
-## 方法设计与 Pipeline
+## 02 · 方法设计与 Pipeline
 
 ![EmotionSketch-BGM 方法流程：文本路由、草图适配、冻结骨干、MIDI 候选生成与 MFAE 筛选。](assets/pipeline.svg)
 
@@ -53,13 +75,14 @@ EmotionSketch-BGM 是一个面向视频背景音乐的情绪控制研究项目�
 | Q3 | 负 | 低 | 悲伤、孤独、忧郁 | 2 |
 | Q4 | 正 | 低 | 温暖、平静、舒缓 | 3 |
 
+<details>
+<summary>训练标签与编号说明</summary>
+
 训练阶段通过 EMOPIA 象限质心提供伪标签；使用阶段可由 Prompt-to-Q 预测或显式指定目标标签。`proxy` 是批内阈值基线，其编号不直接对应 EMOPIA 象限。
 
+</details>
+
 ### 2. 用门控残差适配视觉条件
-
-![EmotionSketch 适配器结构：情绪草图与 Q-label 编码、特征融合、门控残差注入及冻结的 Diff-BGM 骨干。](assets/adapter-architecture.png)
-
-*适配器结构图：连续情绪草图与离散标签融合后，经可学习门控注入视觉条件。点击图片可查看原图。*
 
 每个样本构建 **32 × 16** 草图，涵盖音符活动、音区分布、和弦汇总、视觉/字幕特征范数、镜头计数与效价/唤醒代理量。设视觉条件为 `V`、草图为 `S`、目标标签为 `q`：
 
@@ -69,11 +92,16 @@ V' = V + \sigma(g)\,f_{\mathrm{out}}\!\left(f_{\mathrm{sketch}}(S) + \alpha E(q)
 
 `E(q)` 在时间维广播，α 对应 `label_scale`，`g` 是可学习门控。输入与输出均为 **[B, 32, 512]**；训练更新适配器，保留骨干去噪目标。
 
+<details>
+<summary>参数量明细</summary>
+
 | 项目 | 参数量 |
 | --- | ---: |
 | EmotionSketch Adapter | **537,121** |
 | 冻结 Diff-BGM SDF 骨干 | 41,479,098 |
 | Adapter 占比 | **1.295%** |
+
+</details>
 
 ### 3. 将情绪特征转成候选选择依据
 
@@ -81,8 +109,17 @@ MFAE 使用 **EMOPIA MIDI 的 48 维特征**建立情绪评分依据，涵盖音
 
 在候选评价阶段，结合邻域概率与质心分数衡量 MIDI 与目标情绪的匹配程度，选择符合情绪意图的候选。MFAE 同时作为统一评价器，比较 Adapter 与 no-adapter baseline 的目标象限命中情况，连接轻量条件控制与可诊断的输出评价。
 
+---
+
 <a id="results"></a>
-## 实验与结果
+## 03 · 实验与结果
+
+| 验证问题 | 关键结果 |
+| --- | --- |
+| **评价器能否识别情绪？** | MFAE：Accuracy **0.6279**，Macro-F1 **0.6285** |
+| **Q-label 能否改变条件输出？** | full RMSE **0.099496**；关闭标签分支后为 **0** |
+| **候选是否更偏向目标情绪？** | 相同预算下增加 **312** 个目标命中候选 |
+| **文本能否映射为情绪标签？** | 100 条清洗验证数据上，Prompt-to-Q Accuracy **1.0000** |
 
 ### MFAE：MIDI 四象限情绪分类
 
@@ -92,10 +129,18 @@ MFAE 使用 **EMOPIA MIDI 的 48 维特征**建立情绪评分依据，涵盖音
 | --- | ---: |
 | Accuracy | **0.6279** |
 | Macro-F1 | **0.6285** |
-| Q1 Recall | 0.7755 |
-| Q2 Recall | 0.6038 |
-| Q3 Recall | 0.5294 |
-| Q4 Recall | 0.6129 |
+
+<details>
+<summary>各象限召回率</summary>
+
+| Quadrant | Recall |
+| --- | ---: |
+| Q1 | 0.7755 |
+| Q2 | 0.6038 |
+| Q3 | 0.5294 |
+| Q4 | 0.6129 |
+
+</details>
 
 Accuracy 衡量分类准确率，Macro-F1 为四类 F1 的宏平均，Recall 为各象限召回率。MFAE 为生成候选提供一致的情绪分类与评价依据。
 
@@ -146,8 +191,10 @@ EmotionSketch-BGM 将视频配乐的情绪控制组织为三个可验证模块�
 
 [实验汇总、混淆矩阵与来源记录 →](docs/results-summary.json)
 
+---
+
 <a id="quickstart"></a>
-## 快速开始
+## 04 · 快速开始
 
 先运行无需额外依赖的中文规则路由示例：
 
@@ -162,8 +209,10 @@ PY
 
 **[安装、路由训练、适配器训练和解码命令 →](docs/USAGE.md)**
 
+---
+
 <a id="code"></a>
-## 代码导航
+## 05 · 代码导航
 
 | 功能 | 核心实现 |
 | --- | --- |
@@ -180,3 +229,7 @@ PY
 ## 致谢
 
 视频配乐骨干基于 [Diff-BGM](https://github.com/sizhelee/Diff-BGM)，情绪数据来自 [EMOPIA](https://github.com/annahung31/EMOPIA)。本仓库包含项目使用的[镜头计数补丁](patches/diffbgm-shot-count.patch)。第三方资源遵循各自使用条件；本仓库暂未指定开源许可证。
+
+<p align="center">
+<a href="#emotionsketch-bgm">回到顶部</a> · <a href="docs/USAGE.md">使用指南</a> · <a href="docs/results-summary.json">实验记录</a>
+</p>

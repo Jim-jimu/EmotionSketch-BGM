@@ -1,0 +1,6 @@
+# Direct dependencies for the adapter and MIDI evaluator.
+# The standard-library Prompt-to-Q router needs none of these.
+# Full generation also requires the upstream Diff-BGM environment.
+numpy
+torch
+pretty_midi

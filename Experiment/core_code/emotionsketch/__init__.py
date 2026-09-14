@@ -1,0 +1,2 @@
+"""EmotionSketch prototype components."""
+

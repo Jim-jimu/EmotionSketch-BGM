@@ -1,0 +1,12 @@
+diff --git a/diffbgm/data/dataloader.py b/diffbgm/data/dataloader.py
+index d568ee6..ca2e69e 100644
+--- a/diffbgm/data/dataloader.py
++++ b/diffbgm/data/dataloader.py
+@@ -56,6 +56,7 @@ def collate_fn(batch, shift):
+         prmat.append(seg_prmat)
+         visual.append(seg_visual)
+         caption.append(seg_caption)
++        shot_cnt.append(seg_shot_cnt)
+ 
+         if len(b) > 7:
+             song_fn.append(b[7])

@@ -270,6 +270,28 @@
     {
       "file": "CONTRIBUTION_EVIDENCE_SUMMARY_2026-05-11.md",
       "sha256": "bf3f8429ae7243b60a455ab1bc0327ffbffa92f854e0306f6efa5b517b1b3991"
+    },
+    {
+      "file": "EmotionSketch-BGM_ZJU_Beamer_2026-05-14.tex",
+      "sha256": "3882e8684bbd34bde7037f853730658a4eb229aa3c74c0351056cde3616c98af"
+    },
+    {
+      "file": "EmotionSketch-BGM_ZJU_Beamer_2026-05-14.pdf",
+      "sha256": "079401dc5f182b4bbf2bd1c350278468169867ee48e505cf2724ba7003952f6f"
     }
-  ]
+  ],
+  "readme_presentation": {
+    "reference": "ZJU Beamer report dated 2026-05-15",
+    "experiment_1": "Q-label intervention measured by mean pairwise condition RMSE",
+    "experiment_2": "Adapter vs no-adapter target-quadrant candidate distributions",
+    "prompt_router_display": "Training and cleaned validation split; README omits stress-test presentation. Archived metrics below are retained.",
+    "pages": {
+      "mfae": 8,
+      "adapter_parameters": 10,
+      "experiment_1": 11,
+      "experiment_2": 12,
+      "router": 14,
+      "conclusions": 15
+    }
+  }
 }

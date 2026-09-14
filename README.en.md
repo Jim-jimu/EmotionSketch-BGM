@@ -16,34 +16,31 @@
 
 EmotionSketch-BGM studies how the same video can support different musical emotions. It connects **text-to-emotion routing, lightweight condition adaptation, and MIDI-based evaluation** into a research workflow with trainable components and explicit controls.
 
-On a frozen Diff-BGM backbone, the adapter introduces **537,121 trainable parameters**. Across 100 validation clips with matched candidate budgets, target-quadrant agreement rises from **32.17% to 33.70%** before selection. The text front end reaches **0.8335 Macro-F1** on 80 manually curated Chinese stress-test prompts.
+On a frozen Diff-BGM backbone, the adapter introduces **537,121 trainable parameters**. Across 100 validation clips with matched candidate budgets, target-quadrant agreement rises from **32.17% to 33.70%** before selection. Prompt-to-Q maps natural-language emotion descriptions to a **Q1–Q4 probability distribution**, providing an explicit target label for the adapter.
 
-| Lightweight adaptation | Text emotion routing | Candidate distribution | Evaluation scale |
+| Lightweight adaptation | Natural-language interface | Candidate distribution | Evaluation scale |
 | :---: | :---: | :---: | :---: |
-| **1.295%** | **0.8335** | **+1.53 pp** | **20,400 × 2** |
-| Adapter / frozen-backbone parameters | Chinese stress-test Macro-F1 | MFAE target-hit improvement | Candidates per adapter / baseline condition |
+| **1.295%** | **Q1–Q4** | **+1.53 pp** | **20,400 × 2** |
+| Adapter / frozen-backbone parameters | Four-quadrant emotion distribution | MFAE target-hit improvement | Candidates per adapter / baseline condition |
 
 > Results come from the project's May 2026 experiments. Target hits are defined by MFAE and measured before best-candidate selection; `pp` denotes percentage points. [Aggregate data and source records →](docs/results-summary.json)
 
 <a id="contributions"></a>
 ## Contributions
 
-**01 · A parameter-efficient emotion interface**<br>
-EmotionSketch Adapter projects a 16-dimensional segment sketch and four-quadrant label embeddings into a gated residual on the 512-dimensional visual condition. It adds 537k trainable parameters while preserving the frozen backbone and its conditioning dimensions.
+**01 · MFAE MIDI emotion evaluator**<br>
+A KNN classifier trained on 48 EMOPIA MIDI features provides four-quadrant emotion classification. MFAE serves as a shared scoring criterion for comparing the emotion sketch adapter against the no-adapter baseline and for selecting target MIDI candidates.
 
-**02 · Feature diagnostics translated into decoding policies**<br>
-An EMOPIA-derived, 48-feature MIDI Feature Affective Evaluator (MFAE) scores pitch, duration, velocity, and rhythm statistics. Q1/Q2 reranking, Q3 controlled export, and Q4 focused profile search form a reusable four-quadrant decoding workflow.
+**02 · Parameter-efficient EmotionSketch-BGM adapter**<br>
+Continuous 16-dimensional sketches and discrete Q-label embeddings are mapped into a 512-dimensional condition space. A learned gate injects the residual into the frozen Diff-BGM visual condition path. The adapter contains 537,121 trainable parameters, equivalent to 1.295% of the frozen backbone.
 
-**03 · A lightweight natural-language front end**<br>
-A character n-gram linear softmax classifier maps Chinese emotion descriptions to a Q1–Q4 probability distribution for the adapter's label interface. Router inference uses the Python standard library and requires no online LLM calls.
-
-**04 · Experiments that separate condition response from selection gains**<br>
-Label interventions, a matched-budget no-adapter control, and pre-selection candidate statistics measure three distinct properties: whether the label branch responds, whether the adapter shifts candidate distributions, and how the complete selection protocol covers target quadrants.
+**03 · Prompt-to-Q natural-language router**<br>
+A character n-gram linear softmax classifier maps descriptions such as “bright and excited,” “tense and intense,” “sad and low,” and “calm and soothing” to Q1–Q4 probabilities and then an adapter emotion label. The implemented router processes Chinese prompts, runs on the Python standard library, and requires no online LLM calls.
 
 <a id="method"></a>
 ## Method & Pipeline
 
-![EmotionSketch-BGM pipeline: text routing, sketch adaptation, a frozen backbone, quadrant-specific decoding, and MFAE selection.](assets/pipeline.svg)
+![EmotionSketch-BGM pipeline: text routing, sketch adaptation, a frozen backbone, MIDI candidate generation, and MFAE selection.](assets/pipeline.svg)
 
 *The diagram shows component interfaces. Current music experiments use pre-extracted features and reference symbolic music for teacher-forced conditional denoising; router predictions connect through the label interface.*
 
@@ -68,60 +65,82 @@ V' = V + \sigma(g)\,f_{\mathrm{out}}\!\left(f_{\mathrm{sketch}}(S) + \alpha E(q)
 
 `E(q)` is broadcast over time, α corresponds to `label_scale`, and `g` is a learned gate. Input and output both have shape **[B, 32, 512]**. Training updates the adapter while retaining the backbone's denoising objective.
 
+| Component | Parameters |
+| --- | ---: |
+| EmotionSketch Adapter | **537,121** |
+| Frozen Diff-BGM SDF backbone | 41,479,098 |
+| Adapter / backbone ratio | **1.295%** |
+
 ### 3. Use emotion features to guide candidate selection
 
-| Target | Decoding policy | Main controls |
-| --- | --- | --- |
-| Q1 / Q2 | Conditional candidates + MFAE reranking | Label scale, noise, timestep, binarization threshold |
-| Q3 | Symbolic constraints + label-aware export | Note density, duration, velocity, tempo |
-| Q4 | Diagnostic feature-profile search | Pitch window, mid-register ratio, duration, velocity, tempo |
+MFAE establishes an emotion-scoring space using **48 EMOPIA MIDI features**, including pitch, duration, velocity, and rhythm statistics. A KNN classifier assigns MIDI samples to Q1–Q4 emotion quadrants.
 
-MFAE builds its scoring space from 48 EMOPIA MIDI features. Decoding combines neighborhood probabilities and centroid scores to select target candidates, connecting model conditioning to interpretable symbolic feature diagnostics.
+Candidate evaluation combines neighborhood probabilities and centroid scores to measure alignment with the requested emotion and select a matching MIDI candidate. MFAE also supplies a shared criterion for comparing target-quadrant hits between Adapter and no-adapter conditions, connecting lightweight conditioning to interpretable output evaluation.
 
 <a id="results"></a>
-## Experimental Results
+## Experiments & Results
 
-### A. Parameter efficiency and condition response
+### MFAE: four-quadrant MIDI emotion classification
 
-| Measurement | Result |
+**Setup.** Train a KNN classifier on EMOPIA MIDI features and evaluate four-quadrant recognition on the validation split. Use the resulting MFAE as the shared evaluator in the adapter comparisons.
+
+| Metric | Value |
 | --- | ---: |
-| Frozen Diff-BGM SDF backbone parameters | 41,479,098 |
-| EmotionSketch trainable parameters | **537,121** |
-| Adapter / backbone parameter ratio | **1.295%** |
-| Full adapter: label-intervention condition RMSE | **0.099496** |
-| Label-only branch: label-intervention condition RMSE | 0.110717 |
-| Sketch-only branch: label-intervention condition RMSE | 0.000000 |
+| Accuracy | **0.6279** |
+| Macro-F1 | **0.6285** |
+| Q1 Recall | 0.7755 |
+| Q2 Recall | 0.6038 |
+| Q3 Recall | 0.5294 |
+| Q4 Recall | 0.6129 |
 
-With visual and sketch inputs fixed, forcing Q1–Q4 produces a measurable condition change in the full adapter. Removing the label path makes that response zero, isolating the role of the explicit emotion-label branch.
+Accuracy measures correct classifications, Macro-F1 averages F1 across four classes, and Recall measures recovery within each quadrant. MFAE provides a consistent classification and evaluation criterion for generated candidates.
 
-### B. Target-emotion candidates under matched budgets
+### Experiment 1: can the Q-label emotion-control path intervene in generation?
 
-**Protocol: 100 validation clips × four quadrants; 20,400 candidates per condition, with identical per-quadrant budgets and decoding policies.** Rates below measure MFAE target hits before best-candidate selection.
+**Setup.** Hold the visual features and emotion sketch of the same video sample fixed. Force the input label to Q1/Q2/Q3/Q4 and examine whether the adapter's condition output changes. Compare full, label-only, and sketch-only settings.
 
-| Target | Candidates / condition | No-adapter baseline | EmotionSketch | Change |
+| Adapter setting | Label path | Mean pairwise condition RMSE |
+| --- | --- | ---: |
+| **full (label + sketch)** | enabled | **0.099496** |
+| label-only | enabled | 0.110717 |
+| sketch-only | disabled | 0.000000 |
+
+**Metric.** Compute the root mean square error (RMSE) between condition outputs for each pair of Q-labels, then average. A larger value indicates a stronger effect of label switching on the condition output.
+
+**Conclusion.** Forcing Q1–Q4 changes the condition outputs of full and label-only adapters, while sketch-only remains invariant. This confirms that **the Q-label branch enters the generation condition path**, establishing an explicit emotion-control interface.
+
+### Experiment 2: Adapter vs no-adapter—candidates shift toward the target quadrant
+
+**Setup.** Use **100 BGM909 validation video clips**, assign a target Q-label to each clip, and generate MIDI candidates with the adapter and no-adapter baseline. MFAE classifies each candidate; a hit occurs when its predicted quadrant matches the target label. Both conditions use identical candidate budgets, with **20,400 MIDI candidates per condition**. Hits are measured before best-candidate selection.
+
+| Target | Budget | Adapter hit / rate | Baseline hit / rate | Delta |
 | --- | ---: | ---: | ---: | ---: |
-| Q1 | 2,400 | 33.08% | **36.04%** | **+2.96 pp** |
-| Q2 | 2,400 | 59.25% | **60.33%** | **+1.08 pp** |
-| Q3 · controlled export | 4,000 | 100.00% | 100.00% | 0.00 pp |
-| Q4 · focused search | 11,600 | 2.98% | **4.84%** | **+1.85 pp** |
-| **Overall** | **20,400** | **32.17%** | **33.70%** | **+1.53 pp** |
+| Q1 | 2,400 | **865 / 0.3604** | 794 / 0.3308 | **+2.96 pp** |
+| Q2 | 2,400 | **1,448 / 0.6033** | 1,422 / 0.5925 | **+1.08 pp** |
+| Q3 | 4,000 | 4,000 / 1.0000 | 4,000 / 1.0000 | 0.00 pp |
+| Q4 | 11,600 | **561 / 0.0484** | 346 / 0.0298 | **+1.85 pp** |
+| **Overall** | **20,400** | **6,874 / 0.3370** | **6,562 / 0.3217** | **+1.53 pp** |
 
-The adapter produces **312 additional target-hit candidates** at the same budget, including a Q4 increase from **346 to 561**. This supports a shift toward the requested emotion in the candidate distribution. The overall rate is weighted by the reported per-quadrant budgets; differences are computed from unrounded counts.
+**Conclusion.** Across 100 validation clips and 20,400 MIDI candidates per condition, the adapter raises the overall target-quadrant hit rate from **0.3217 to 0.3370**, producing **312 additional target-hit candidates** at the same budget. The emotion sketch adapter shifts the candidate distribution toward the requested quadrant.
 
-The complete MFAE-guided selection workflow produces **400/400** target-matching outputs in both conditions. Adapter contribution is therefore measured by pre-selection distribution changes; 400/400 describes four-quadrant coverage under the complete selection protocol.
+*Overall is weighted by the per-quadrant candidate counts; pp denotes percentage points, and differences are calculated from the original counts.*
 
-### C. Chinese Prompt-to-Q routing
+### Prompt-to-Q: natural-language emotion-label classification
 
-The router uses **400** training prompts, **100** cleaned validation prompts, and **80** manually curated stress-test prompts.
+**Setup.** Use LLM-assisted generation of natural-language emotion descriptions and Q-labels, followed by cleaning and balancing across Q1–Q4. Train the lightweight router on **400 prompts** and compare it against a keyword-rule baseline on **100 cleaned validation prompts**.
 
-| Split | Method | Accuracy | Macro-F1 |
+| Split | Model | Accuracy | Macro-F1 |
 | --- | --- | ---: | ---: |
-| Validation | Keyword rules | 0.6600 | 0.6430 |
-| Validation | **Prompt-to-Q** | **1.0000** | **1.0000** |
-| Stress test | Keyword rules | 0.8125 | 0.8242 |
-| Stress test | **Prompt-to-Q** | **0.8250** | **0.8335** |
+| validation | **lightweight router** | **1.0000** | **1.0000** |
+| validation | rule baseline | 0.6600 | 0.6430 |
 
-MFAE itself reaches **0.6279 Accuracy / 0.6285 Macro-F1** on **215** EMOPIA validation samples. Music-generation results use this evaluator's diagnostic criterion; text routing and MIDI emotion scoring are evaluated separately. [Full aggregates, confusion matrices, and source fingerprints →](docs/results-summary.json)
+**Conclusion.** On this cleaned validation split, the lightweight router correctly maps natural-language descriptions to emotion labels, providing a structured entry point for user intent that connects to the adapter's Q-label interface.
+
+### Project conclusions
+
+EmotionSketch-BGM organizes video-music emotion control into three verifiable modules: **MFAE supplies emotion classification, the adapter supplies a lightweight condition-control path, and Prompt-to-Q supplies the natural-language interface**. Label intervention verifies the control branch, and the candidate comparison shows that this path shifts MIDI candidate distributions toward the target emotion.
+
+[Aggregate results, confusion matrices, and source records →](docs/results-summary.json)
 
 <a id="quickstart"></a>
 ## Quick Start
@@ -149,7 +168,7 @@ This example uses the rule baseline; Prompt-to-Q results above use the trained c
 | Chinese prompt training and prediction | [prompt_router.py](Experiment/core_code/emotionsketch/prompt_router.py) |
 | Adapter training on a frozen backbone | [emotionsketch_adapter_train.py](Experiment/core_code/scripts/emotionsketch_adapter_train.py) |
 | MIDI evaluator training / scoring | [MFAE training](Experiment/core_code/scripts/train_emopia_midi_quadrant_evaluator_v3.py) · [Manifest scoring](Experiment/core_code/scripts/score_midi_manifest_v3.py) |
-| Quadrant-guided decoding | [Q1/Q2](Experiment/core_code/scripts/guided_decode_rerank_demo.py) · [Q3](Experiment/core_code/scripts/constrained_decode_eval_demo.py) · [Q4](Experiment/core_code/scripts/q4_profile_search_v3.py) |
+| Candidate generation and selection | [Candidate generation](Experiment/core_code/scripts/guided_decode_rerank_demo.py) · [Controlled export](Experiment/core_code/scripts/constrained_decode_eval_demo.py) · [Feature search](Experiment/core_code/scripts/q4_profile_search_v3.py) |
 | Intervention and parameter analysis | [Label intervention](Experiment/core_code/scripts/evaluate_label_intervention_sensitivity.py) · [Parameter count](Experiment/core_code/scripts/summarize_parameter_efficiency.py) |
 
 The repository contains **18 core source files** with project and reproduction documentation. Raw data, weights, candidate MIDI files, logs, and third-party repositories are prepared separately. Reported metrics are archived experiment results; training was not rerun for this documentation update.

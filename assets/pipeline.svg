@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="670" viewBox="0 0 1200 670" role="img" aria-labelledby="title desc">
 <title id="title">EmotionSketch-BGM method and component interfaces</title>
-<desc id="desc">A Chinese prompt is routed to an emotion label. A 16-dimensional sketch and the label adapt visual features through a trainable gated residual. A frozen Diff-BGM backbone denoises reference symbolic music. Quadrant-specific decoding policies create candidates; an EMOPIA-derived MIDI evaluator scores and selects target MIDI.</desc>
+<desc id="desc">A Chinese prompt is routed to an emotion label. A 16-dimensional sketch and the label adapt visual features through a trainable gated residual. A frozen Diff-BGM backbone denoises reference symbolic music. Decoding and MIDI export create candidates; an EMOPIA-derived MIDI evaluator scores and selects target MIDI.</desc>
 <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#64748b"/></marker></defs>
 <rect width="1200" height="670" rx="22" fill="#f8fafc"/>
 <rect x="1" y="1" width="1198" height="668" rx="21" fill="none" stroke="#dbe3ed"/>
@@ -54,9 +54,9 @@
 <text x="292" y="432" fill="#64748b" font-size="13">Reference piano roll + noise</text>
 <text x="36" y="478" fill="#059669" font-size="12" font-weight="700">03   DECODE, SCORE &amp; SELECT</text>
 <rect x="36" y="500" width="360" height="110" rx="14" fill="#fff7ed" stroke="#fed7aa"/>
-<text x="54" y="531" fill="#9a3412" font-size="19" font-weight="700">Quadrant-aware decoding</text>
-<text x="54" y="557" fill="#475569" font-size="14">Q1/Q2: candidate reranking</text>
-<text x="54" y="579" fill="#475569" font-size="14">Q3: controlled export • Q4: focused search</text>
+<text x="54" y="531" fill="#9a3412" font-size="19" font-weight="700">MIDI candidate generation</text>
+<text x="54" y="557" fill="#475569" font-size="14">Conditional decoding and export</text>
+<text x="54" y="579" fill="#475569" font-size="14">Candidate pool for target emotion</text>
 <text x="54" y="601" fill="#475569" font-size="14">Pitch / density / duration / velocity / tempo</text>
 <rect x="440" y="500" width="400" height="110" rx="14" fill="#ecfdf5" stroke="#a7f3d0"/>
 <text x="458" y="531" fill="#065f46" font-size="19" font-weight="700">MFAE-guided selection</text>

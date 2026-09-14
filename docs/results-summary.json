@@ -1,0 +1,275 @@
+{
+  "description": "Aggregate evidence for the bilingual README, extracted from archived May 2026 project records. This documentation release does not rerun the experiments or distribute raw samples.",
+  "adapter": {
+    "parameters": 537121,
+    "frozen_backbone_parameters": 41479098,
+    "adapter_to_backbone_percent": 1.2949196725541139,
+    "condition_shape": "[B, 32, 512]",
+    "sketch_shape": "[B, 32, 16]"
+  },
+  "prompt_router": {
+    "language": "Chinese prompts",
+    "train_count": 400,
+    "validation_count": 100,
+    "curated_stress_count": 80,
+    "metrics": {
+      "router_stress": {
+        "n": 80,
+        "accuracy": 0.825,
+        "macro_f1": 0.8335205151242887,
+        "confusion": [
+          [
+            20,
+            0,
+            0,
+            0
+          ],
+          [
+            5,
+            15,
+            0,
+            0
+          ],
+          [
+            3,
+            0,
+            16,
+            1
+          ],
+          [
+            5,
+            0,
+            0,
+            15
+          ]
+        ]
+      },
+      "router_val": {
+        "n": 100,
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "confusion": [
+          [
+            25,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            25,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            25,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            25
+          ]
+        ]
+      },
+      "rule_stress": {
+        "n": 80,
+        "accuracy": 0.8125,
+        "macro_f1": 0.8242084712672947,
+        "confusion": [
+          [
+            20,
+            0,
+            0,
+            0
+          ],
+          [
+            5,
+            15,
+            0,
+            0
+          ],
+          [
+            6,
+            0,
+            14,
+            0
+          ],
+          [
+            4,
+            0,
+            0,
+            16
+          ]
+        ]
+      },
+      "rule_val": {
+        "n": 100,
+        "accuracy": 0.66,
+        "macro_f1": 0.6429864575413894,
+        "confusion": [
+          [
+            25,
+            0,
+            0,
+            0
+          ],
+          [
+            7,
+            18,
+            0,
+            0
+          ],
+          [
+            21,
+            0,
+            4,
+            0
+          ],
+          [
+            6,
+            0,
+            0,
+            19
+          ]
+        ]
+      }
+    }
+  },
+  "mfae": {
+    "feature_dimensions": 48,
+    "validation_count": 215,
+    "metrics": {
+      "accuracy": 0.627906976744186,
+      "confusion": [
+        [
+          38,
+          8,
+          1,
+          2
+        ],
+        [
+          14,
+          32,
+          3,
+          4
+        ],
+        [
+          2,
+          1,
+          27,
+          21
+        ],
+        [
+          4,
+          3,
+          17,
+          38
+        ]
+      ],
+      "macro_f1": 0.6284884826424262,
+      "per_class_recall": {
+        "Q1": 0.7755102040816326,
+        "Q2": 0.6037735849056604,
+        "Q3": 0.5294117647058824,
+        "Q4": 0.6129032258064516
+      }
+    }
+  },
+  "candidate_comparison": {
+    "validation_clips": 100,
+    "targets_per_clip": 4,
+    "protocol": "Teacher-forced diagnostic candidates; Q1/Q2 reranking, Q3 controlled export, Q4 focused profile search; matched budgets across adapter and baseline. MFAE defines a target hit.",
+    "rows": [
+      {
+        "target": "Q1",
+        "candidates_per_condition": 2400,
+        "adapter_hits": 865,
+        "baseline_hits": 794,
+        "adapter_rate": 0.36041666666666666,
+        "baseline_rate": 0.3308333333333333,
+        "difference_percentage_points": 2.9583333333333335
+      },
+      {
+        "target": "Q2",
+        "candidates_per_condition": 2400,
+        "adapter_hits": 1448,
+        "baseline_hits": 1422,
+        "adapter_rate": 0.6033333333333334,
+        "baseline_rate": 0.5925,
+        "difference_percentage_points": 1.0833333333333333
+      },
+      {
+        "target": "Q3",
+        "candidates_per_condition": 4000,
+        "adapter_hits": 4000,
+        "baseline_hits": 4000,
+        "adapter_rate": 1.0,
+        "baseline_rate": 1.0,
+        "difference_percentage_points": 0.0
+      },
+      {
+        "target": "Q4",
+        "candidates_per_condition": 11600,
+        "adapter_hits": 561,
+        "baseline_hits": 346,
+        "adapter_rate": 0.048362068965517244,
+        "baseline_rate": 0.02982758620689655,
+        "difference_percentage_points": 1.853448275862069
+      }
+    ],
+    "overall": {
+      "candidates_per_condition": 20400,
+      "adapter_hits": 6874,
+      "baseline_hits": 6562,
+      "adapter_rate": 0.3369607843137255,
+      "baseline_rate": 0.32166666666666666,
+      "difference_percentage_points": 1.5294117647058822
+    },
+    "selected_outputs_per_condition": 400,
+    "selected_target_hits": {
+      "adapter": 400,
+      "baseline": 400
+    },
+    "interpretation": "Candidate-level comparison isolates the change before selection; selected agreement measures the complete selection protocol. The overall rate is weighted by the reported, unequal per-quadrant budgets."
+  },
+  "label_intervention": {
+    "protocol": "Hold visual and sketch inputs fixed and force Q1-Q4; report mean pairwise condition RMSE.",
+    "full": 0.099496,
+    "label_only": 0.110717,
+    "sketch_only": 0.0
+  },
+  "sources": [
+    {
+      "file": "PROMPT_Q_ROUTER_RESULTS_2026-05-10.json",
+      "sha256": "e81cd3c30ba6e3a161319270839ab3434f90e364b655991ff46e654f849e638d"
+    },
+    {
+      "file": "LARGE_MFAE_CANDIDATE_DISTRIBUTION_2026-05-10.json",
+      "sha256": "8078e6d35ec4452dd1b6d33ca3d44deff25e34fc059fe036e59d6d05f3d4d613"
+    },
+    {
+      "file": "LARGE_MFAE_BASELINE_CANDIDATE_DISTRIBUTION_2026-05-10.md",
+      "sha256": "66f848b30bb227fa7eeab1a944a3fc4b2cd997aca39e3cc3a5ca2b55a377b8ca"
+    },
+    {
+      "file": "LARGE_MFAE_ADAPTER_VS_BASELINE_COMPARISON_2026-05-11.md",
+      "sha256": "268bfbea9273aca55644c2a522e689e891aaa326512fd64ba961bbd66ff567aa"
+    },
+    {
+      "file": "EVALUATOR_VALIDITY_CHECK_2026-05-09.json",
+      "sha256": "1ffaad8b05e8c9e8a78fd4148e7805d2e0a8871b413c9051166ce54563e782d2"
+    },
+    {
+      "file": "LABEL_INTERVENTION_SENSITIVITY_2026-05-09.md",
+      "sha256": "20c7355c8f7f29e059409a3f983e895b4ffcfb7194e569f4c9fe80e71fd3b7e2"
+    },
+    {
+      "file": "CONTRIBUTION_EVIDENCE_SUMMARY_2026-05-11.md",
+      "sha256": "bf3f8429ae7243b60a455ab1bc0327ffbffa92f854e0306f6efa5b517b1b3991"
+    }
+  ]
+}

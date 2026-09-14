@@ -1,103 +1,159 @@
+<div align="center">
+
 # EmotionSketch-BGM
 
-**自然语言情绪控制的视频背景音乐生成 · SRTP 核心代码**
+### 用自然语言表达情绪，让视频配乐拥有可解释的控制接口
 
-本项目研究如何在 Diff-BGM 视频配乐骨干上加入可解释的情绪控制：Prompt-to-Q 路由器将文本映射到情绪象限，EmotionSketch 适配器将符号音乐草图和标签注入视觉条件分支，MFAE 评价器用于 MIDI 情绪评分和候选选择。
+**情绪草图适配器 · 符号音乐生成 · 评价器引导解码**
 
-这是结题项目的精简研究代码。包含适配器、路由器、评价器及必要的训练与解码入口；数据集、模型权重、实验结果、论文、答辩材料和第三方源码需要另行准备。
+**简体中文** | [English](README.en.md)
 
-## 核心模块
+[核心贡献](#contributions) · [方法与流程](#method) · [实验结果](#results) · [快速开始](#quickstart) · [代码导航](#code)
 
-| 模块 | 实现 |
-| --- | --- |
-| EmotionSketch Adapter | [model.py](Experiment/core_code/emotionsketch/model.py)：16 维草图与四类标签经门控残差注入 512 维视觉条件。 |
-| 草图与伪标签 | [data.py](Experiment/core_code/emotionsketch/data.py)：从符号音乐及多模态特征构建分段草图；支持 EMOPIA 象限质心伪标签。 |
-| Prompt-to-Q | [prompt_router.py](Experiment/core_code/emotionsketch/prompt_router.py)：字符 n-gram 线性分类器及规则基线，仅依赖 Python 标准库。 |
-| MFAE / V3 | [train_emopia_midi_quadrant_evaluator_v3.py](Experiment/core_code/scripts/train_emopia_midi_quadrant_evaluator_v3.py)：48 维 MIDI 特征、近邻与质心分类评估。 |
-| 情绪引导解码 | [Q1/Q2 候选排序](Experiment/core_code/scripts/guided_decode_rerank_demo.py)、[Q3 受控导出](Experiment/core_code/scripts/constrained_decode_eval_demo.py)、[Q4 参数搜索](Experiment/core_code/scripts/q4_profile_search_v3.py)。 |
+</div>
 
-标签顺序为 Q1（正效价、高唤醒）、Q2（负效价、高唤醒）、Q3（负效价、低唤醒）、Q4（正效价、低唤醒），模型编号为 0–3。`proxy` 模式是批内阈值基线，其编号不能直接解释为上述 EMOPIA 象限；正式象限实验使用 `emopia_prior`。
+---
 
-## 先运行文本路由器
+EmotionSketch-BGM 是一个面向视频背景音乐的情绪控制研究项目。围绕“同一视频如何表达不同情绪”，项目将**文本情绪路由、轻量条件适配和 MIDI 评价引导**组织成一套可检查、可训练、可比较的研究流程。
 
-在仓库根目录运行，无需下载 Diff-BGM 或安装 PyTorch：
+在冻结的 Diff-BGM 骨干上，EmotionSketch 以 **537,121 个可训练参数**注入情绪条件；在 100 个验证片段的同预算实验中，候选池目标象限命中率从 **32.17% 提升至 33.70%**。文本前端在 80 条人工整理的中文压力测试提示上达到 **0.8335 Macro-F1**。
+
+| 轻量适配 | 文本情绪理解 | 候选分布控制 | 实验规模 |
+| :---: | :---: | :---: | :---: |
+| **1.295%** | **0.8335** | **+1.53 pp** | **20,400 × 2** |
+| 适配器 / 冻结骨干参数比 | 中文压力测试 Macro-F1 | MFAE 目标命中率提升 | 适配器与基线各自的候选数 |
+
+> 数据来自 2026 年 5 月项目实验。命中率按 MFAE 评价器定义，统计于最佳候选筛选之前；`pp` 表示百分点。[查看汇总数据与来源记录 →](docs/results-summary.json)
+
+<a id="contributions"></a>
+## 核心贡献
+
+**01 · 参数高效的情绪控制接口**<br>
+设计 EmotionSketch Adapter，将 16 维分段草图与四象限标签嵌入映射为门控残差，注入 512 维视觉条件。保持骨干冻结与条件张量尺寸不变，以 53.7 万参数扩展情绪控制能力。
+
+**02 · 从特征诊断到解码策略**<br>
+构建基于 EMOPIA 的 48 维 MIDI 情绪评价器（MFAE），将音高、时值、力度、节奏等统计特征用于候选评分；结合 Q1/Q2 重排序、Q3 受控导出和 Q4 定向参数搜索，形成可复用的四象限解码流程。
+
+**03 · 轻量自然语言前端**<br>
+实现字符 n-gram 与线性 softmax 分类器，将中文情绪提示转为 Q1–Q4 概率分布，与适配器标签接口对接。路由器运行仅依赖 Python 标准库，无需在线调用大语言模型。
+
+**04 · 分离条件响应与筛选收益的实验设计**<br>
+通过标签干预、同预算无适配器对照和筛选前候选统计，分别衡量控制分支是否生效、适配器是否改变候选分布，以及完整筛选流程的覆盖情况。
+
+<a id="method"></a>
+## 方法设计与 Pipeline
+
+![EmotionSketch-BGM 方法流程：文本路由、草图适配、冻结骨干、象限解码与 MFAE 筛选。](assets/pipeline.svg)
+
+*图中展示组件接口关系。当前音乐实验基于预提取特征与参考符号音乐的 teacher-forced 条件去噪；文本路由器输出通过标签接口接入。*
+
+### 1. 将情绪意图转成统一控制信号
+
+| 象限 | 效价 | 唤醒度 | 情绪示例 | 标签编号 |
+| --- | --- | --- | --- | :---: |
+| Q1 | 正 | 高 | 欢快、兴奋、胜利 | 0 |
+| Q2 | 负 | 高 | 紧张、压迫、冲突 | 1 |
+| Q3 | 负 | 低 | 悲伤、孤独、忧郁 | 2 |
+| Q4 | 正 | 低 | 温暖、平静、舒缓 | 3 |
+
+训练阶段通过 EMOPIA 象限质心提供伪标签；使用阶段可由 Prompt-to-Q 预测或显式指定目标标签。`proxy` 是批内阈值基线，其编号不直接对应 EMOPIA 象限。
+
+### 2. 用门控残差适配视觉条件
+
+每个样本构建 **32 × 16** 草图，涵盖音符活动、音区分布、和弦汇总、视觉/字幕特征范数、镜头计数与效价/唤醒代理量。设视觉条件为 $V$、草图为 $S$、目标标签为 $q$：
+
+```math
+V' = V + \sigma(g)\,f_{\mathrm{out}}\!\left(f_{\mathrm{sketch}}(S) + \alpha E(q)\right)
+```
+
+$E(q)$ 在时间维广播，$\alpha$ 对应 `label_scale`，$g$ 是可学习门控。输入与输出均为 **[B, 32, 512]**；训练更新适配器，保留骨干去噪目标。
+
+### 3. 将情绪特征转成候选选择依据
+
+| 目标 | 解码策略 | 主要控制量 |
+| --- | --- | --- |
+| Q1 / Q2 | 条件候选生成 + MFAE 重排序 | 标签强度、噪声、时间步、二值化阈值 |
+| Q3 | 符号约束 + 标签感知导出 | 音符密度、时值、力度与速度 |
+| Q4 | 基于特征诊断的定向搜索 | 音域、中音区占比、时值、力度与速度 |
+
+MFAE 使用 EMOPIA MIDI 的 48 维特征建立情绪评分依据。解码阶段结合邻域概率与质心分数选择目标候选，使生成条件和符号音乐特征之间具有明确的诊断接口。
+
+<a id="results"></a>
+## 实验结果
+
+### A. 参数效率与条件响应
+
+| 项目 | 结果 |
+| --- | ---: |
+| 冻结 Diff-BGM SDF 骨干参数 | 41,479,098 |
+| EmotionSketch 可训练参数 | **537,121** |
+| 适配器 / 骨干参数比 | **1.295%** |
+| 完整适配器：标签干预条件 RMSE | **0.099496** |
+| 仅标签分支：标签干预条件 RMSE | 0.110717 |
+| 仅草图分支：标签干预条件 RMSE | 0.000000 |
+
+固定视觉输入和草图、切换 Q1–Q4 时，完整适配器的条件张量产生可测变化；移除标签路径后响应为零，验证了显式标签分支的作用。
+
+### B. 同预算下的目标情绪候选分布
+
+**协议：100 个验证片段 × 四象限，每个实验条件 20,400 个候选；保持各象限预算和解码策略一致。** 表中统计最佳候选筛选前的 MFAE 命中率。
+
+| 目标 | 候选数 / 条件 | 无适配器基线 | EmotionSketch | 提升 |
+| --- | ---: | ---: | ---: | ---: |
+| Q1 | 2,400 | 33.08% | **36.04%** | **+2.96 pp** |
+| Q2 | 2,400 | 59.25% | **60.33%** | **+1.08 pp** |
+| Q3 · 受控导出 | 4,000 | 100.00% | 100.00% | 0.00 pp |
+| Q4 · 定向搜索 | 11,600 | 2.98% | **4.84%** | **+1.85 pp** |
+| **整体** | **20,400** | **32.17%** | **33.70%** | **+1.53 pp** |
+
+适配器在相同预算下增加 **312 个**目标命中候选，其中 Q4 从 **346 增至 561**。这表明情绪条件能够将候选分布向目标象限偏移。整体命中率按表中各象限候选数加权；差值由未四舍五入的计数计算。
+
+完整 MFAE 引导筛选流程在两个条件下均得到 **400/400** 个目标匹配输出。因此，适配器贡献由筛选前的分布变化衡量，400/400 用于描述完整筛选协议的四象限覆盖。
+
+### C. 中文 Prompt-to-Q 路由
+
+训练集 **400** 条、清洗后的验证集 **100** 条、人工整理的压力测试集 **80** 条。
+
+| 数据划分 | 方法 | Accuracy | Macro-F1 |
+| --- | --- | ---: | ---: |
+| 验证集 | 关键词规则 | 0.6600 | 0.6430 |
+| 验证集 | **Prompt-to-Q** | **1.0000** | **1.0000** |
+| 压力测试集 | 关键词规则 | 0.8125 | 0.8242 |
+| 压力测试集 | **Prompt-to-Q** | **0.8250** | **0.8335** |
+
+MFAE 本身在 **215** 个 EMOPIA 验证样本上取得 **0.6279 Accuracy / 0.6285 Macro-F1**。生成结果采用该评价器的诊断标准；文本路由与音乐情绪评分分别评估。[完整汇总、混淆矩阵与来源指纹 →](docs/results-summary.json)
+
+<a id="quickstart"></a>
+## 快速开始
+
+先运行无需额外依赖的中文规则路由示例：
 
 ```bash
-python3 Experiment/core_code/scripts/train_prompt_q_router.py --help
 PYTHONPATH=Experiment/core_code python3 - <<'PY'
 from emotionsketch.prompt_router import rule_predict
-print(rule_predict("温暖平静的背景音乐"))
+print(rule_predict("温暖平静的背景音乐"))  # Q4
 PY
 ```
 
-训练可学习路由器时，自行准备以下 JSONL 文件，每行含 `text`、`label`，可选 `id`；标签使用 `Q1` 至 `Q4`。训练、验证、压力测试集应独立划分。
+这是规则基线入口；上表中的 Prompt-to-Q 为训练后的分类器。音乐模块使用 **PyTorch / NumPy / pretty_midi**，完整流程需准备 Diff-BGM、数据与模型权重。
 
-```text
-Experiment/datasets/prompt_q_router/train.jsonl
-Experiment/datasets/prompt_q_router/val.jsonl
-Experiment/datasets/prompt_q_router/stress_test_gold.jsonl
-```
+**[安装、路由训练、适配器训练和解码命令 →](docs/USAGE.md)**
 
-```bash
-python3 Experiment/core_code/scripts/train_prompt_q_router.py
-```
+<a id="code"></a>
+## 代码导航
 
-模型输出到 `Experiment/core_code/checkpoints/prompt_q_router.pkl`。仅加载可信来源的 pickle 和模型权重。
+| 功能 | 核心实现 |
+| --- | --- |
+| 门控情绪适配 | [model.py](Experiment/core_code/emotionsketch/model.py) |
+| 16 维草图与 EMOPIA 伪标签 | [data.py](Experiment/core_code/emotionsketch/data.py) |
+| 中文提示训练与预测 | [prompt_router.py](Experiment/core_code/emotionsketch/prompt_router.py) |
+| 冻结骨干上的适配器训练 | [emotionsketch_adapter_train.py](Experiment/core_code/scripts/emotionsketch_adapter_train.py) |
+| MIDI 评价器训练 / 评分 | [MFAE 训练](Experiment/core_code/scripts/train_emopia_midi_quadrant_evaluator_v3.py) · [清单评分](Experiment/core_code/scripts/score_midi_manifest_v3.py) |
+| 象限引导解码 | [Q1/Q2](Experiment/core_code/scripts/guided_decode_rerank_demo.py) · [Q3](Experiment/core_code/scripts/constrained_decode_eval_demo.py) · [Q4](Experiment/core_code/scripts/q4_profile_search_v3.py) |
+| 干预与参数分析 | [标签干预](Experiment/core_code/scripts/evaluate_label_intervention_sensitivity.py) · [参数统计](Experiment/core_code/scripts/summarize_parameter_efficiency.py) |
 
-## 准备音乐模型环境
+仓库保留 **18 个核心源码文件**和展示/复现说明。原始数据、权重、候选 MIDI、日志及第三方仓库另行准备；实验汇总为已归档结果，不代表本次文档更新重新执行训练。
 
-本仓库保留原项目的 `Experiment/core_code/` 层级，脚本据此定位数据和输出目录。请在仓库根目录执行命令。
+## 致谢
 
-核心音乐模块直接使用 NumPy、PyTorch、pretty_midi，见 [requirements.txt](requirements.txt)。该文件是直接依赖清单，完整 Diff-BGM 环境还需遵循上游安装说明；本次发布未重新验证 GPU 训练环境或固定兼容版本组合。
-
-```bash
-python3 -m pip install -r requirements.txt
-git clone https://github.com/sizhelee/Diff-BGM.git Experiment/code_references/Diff-BGM
-git -C Experiment/code_references/Diff-BGM checkout c5a0e8a2d589142ce5951d99c1627fd7d523411c
-git -C Experiment/code_references/Diff-BGM apply ../../../patches/diffbgm-shot-count.patch
-bash Experiment/core_code/scripts/prepare_remote_layout.sh
-```
-
-补丁恢复本项目使用的数据加载修正：将每条样本的镜头计数加入批次。第三方源码不随本仓库分发；上述提交来自本地实验所用的 Diff-BGM 版本。
-
-另外需要：
-
-- 按 [Diff-BGM 上游说明](https://github.com/sizhelee/Diff-BGM#2-training)准备 BGM909/POP909 特征、预训练组件及划分文件。布局脚本只创建目录与链接，不下载数据。
-- 准备 [EMOPIA](https://github.com/annahung31/EMOPIA) 数据，将 `EMOPIA_2.2/midis/` 与 `EMOPIA_2.2/CP_events/` 放在 `Experiment/datasets/emopia/` 下。
-- 自行训练或准备基线、适配器及 MFAE 权重。完整训练涉及大模型和数据，需相应计算资源。
-
-## 训练与解码入口
-
-以下命令依赖上一节的资源。它们展示原实验的调用方式，并不表示数据或已训练模型包含在仓库中。
-
-```bash
-# EMOPIA 象限先验与 MFAE 评价器
-python3 Experiment/core_code/scripts/build_emopia_emotion_prior.py
-python3 Experiment/core_code/scripts/train_emopia_midi_quadrant_evaluator_v3.py
-
-# 基线与情绪适配器：名称与解码脚本的默认权重路径一致
-python3 Experiment/core_code/scripts/baseline_bounded_train.py \
-  --steps 1000 --run-name baseline_1000steps
-python3 Experiment/core_code/scripts/emotionsketch_adapter_train.py \
-  --steps 100 --label-mode emopia_prior \
-  --run-name emotionsketch_adapter_emopia_prior_100steps
-
-# 四象限对应的候选生成路径
-python3 Experiment/core_code/scripts/guided_decode_rerank_demo.py --labels 0,1
-python3 Experiment/core_code/scripts/constrained_decode_eval_demo.py --labels 2
-python3 Experiment/core_code/scripts/q4_profile_search_v3.py --profile-mode focused
-```
-
-共享的模型加载、去噪与 MIDI 导出实现位于 [export_teacher_forced_demo_grid.py](Experiment/core_code/scripts/export_teacher_forced_demo_grid.py)。评价器训练所需的公共指标函数保留在 [train_emopia_midi_quadrant_classifier.py](Experiment/core_code/scripts/train_emopia_midi_quadrant_classifier.py)。标签干预及参数量检查分别见 [evaluate_label_intervention_sensitivity.py](Experiment/core_code/scripts/evaluate_label_intervention_sensitivity.py) 和 [summarize_parameter_efficiency.py](Experiment/core_code/scripts/summarize_parameter_efficiency.py)；MIDI 清单评分见 [score_midi_manifest_v3.py](Experiment/core_code/scripts/score_midi_manifest_v3.py)。
-
-## 实验范围
-
-当前解码入口从已有符号音乐样本加噪后进行条件去噪，并结合阈值、受控导出或候选搜索。它们是 teacher-forced 诊断流程，不能当作任意原始视频输入到音乐的完整采样应用。
-
-适配器提供条件控制接口；最终象限匹配还受到解码策略和评价器引导选择的影响。评价器得分不能直接等同于听众感知的情绪。本仓库不附实验结果，因此不在此声明性能指标。
-
-## 发布检查与来源
-
-此次整理检查了 Python 语法、项目内脚本依赖、目录定位、Shell 语法及文本路由器的训练/预测/保存/加载；完整音乐训练与生成未在此次发布中重跑。
-
-本项目基于 [Diff-BGM](https://github.com/sizhelee/Diff-BGM)，情绪象限及相关训练数据来自 [EMOPIA](https://github.com/annahung31/EMOPIA)。第三方代码、数据和权重的使用条件以各自项目为准。本仓库暂未指定开源许可证。
+视频配乐骨干基于 [Diff-BGM](https://github.com/sizhelee/Diff-BGM)，情绪数据来自 [EMOPIA](https://github.com/annahung31/EMOPIA)。本仓库包含项目使用的[镜头计数补丁](patches/diffbgm-shot-count.patch)。第三方资源遵循各自使用条件；本仓库暂未指定开源许可证。

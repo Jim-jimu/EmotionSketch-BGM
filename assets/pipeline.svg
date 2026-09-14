@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="670" viewBox="0 0 1200 670" role="img" aria-labelledby="title desc">
+<title id="title">EmotionSketch-BGM method and component interfaces</title>
+<desc id="desc">A Chinese prompt is routed to an emotion label. A 16-dimensional sketch and the label adapt visual features through a trainable gated residual. A frozen Diff-BGM backbone denoises reference symbolic music. Quadrant-specific decoding policies create candidates; an EMOPIA-derived MIDI evaluator scores and selects target MIDI.</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#64748b"/></marker></defs>
+<rect width="1200" height="670" rx="22" fill="#f8fafc"/>
+<rect x="1" y="1" width="1198" height="668" rx="21" fill="none" stroke="#dbe3ed"/>
+<g font-family="Arial, Helvetica, sans-serif">
+<text x="36" y="46" fill="#0f172a" font-size="25" font-weight="700">EmotionSketch-BGM</text>
+<text x="36" y="73" fill="#64748b" font-size="15">An interpretable emotion interface for symbolic video background music</text>
+<rect x="922" y="29" width="240" height="32" rx="16" fill="#e0e7ff"/>
+<text x="1042" y="50" text-anchor="middle" fill="#3730a3" font-size="13" font-weight="700">537k TRAINABLE PARAMETERS</text>
+<text x="36" y="113" fill="#6366f1" font-size="12" font-weight="700">01   EXPRESS THE TARGET</text>
+<rect x="36" y="132" width="250" height="100" rx="14" fill="#fff" stroke="#cbd5e1"/>
+<text x="54" y="163" fill="#0f172a" font-size="19" font-weight="700">Emotion prompt</text>
+<text x="54" y="189" fill="#475569" font-size="14">Chinese natural language</text>
+<text x="54" y="211" fill="#475569" font-size="14">e.g. warm, calm, soothing</text>
+<rect x="330" y="132" width="250" height="100" rx="14" fill="#eef2ff" stroke="#c7d2fe"/>
+<text x="348" y="163" fill="#3730a3" font-size="19" font-weight="700">Prompt-to-Q</text>
+<text x="348" y="189" fill="#475569" font-size="14">Character n-grams + softmax</text>
+<text x="348" y="211" fill="#475569" font-size="14">Python standard library</text>
+<rect x="624" y="132" width="538" height="100" rx="14" fill="#eef2ff" stroke="#c7d2fe"/>
+<text x="642" y="163" fill="#3730a3" font-size="19" font-weight="700">Shared quadrant interface</text>
+<text x="642" y="189" fill="#475569" font-size="14">Q1  Joyful     Q2  Tense     Q3  Sad     Q4  Calm</text>
+<text x="642" y="211" fill="#475569" font-size="14">Target label q → embedding E(q)</text>
+<path d="M286 182 H324" fill="none" stroke="#64748b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M580 182 H618" fill="none" stroke="#64748b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="36" y="270" fill="#0284c7" font-size="12" font-weight="700">02   ADAPT THE CONDITION</text>
+<rect x="36" y="292" width="250" height="116" rx="14" fill="#fff" stroke="#cbd5e1"/>
+<text x="54" y="323" fill="#0f172a" font-size="19" font-weight="700">Multimodal features</text>
+<text x="54" y="349" fill="#475569" font-size="14">Video + symbolic context</text>
+<text x="54" y="371" fill="#475569" font-size="14">Segment sketch: [B, 32, 16]</text>
+<text x="54" y="393" fill="#475569" font-size="14">Visual features: [B, 32, 512]</text>
+<rect x="330" y="292" width="250" height="116" rx="14" fill="#e0f2fe" stroke="#7dd3fc"/>
+<text x="348" y="323" fill="#075985" font-size="19" font-weight="700">EmotionSketch Adapter</text>
+<text x="348" y="349" fill="#475569" font-size="14">Sketch projection + E(q)</text>
+<text x="348" y="371" fill="#475569" font-size="14">Learned gate + visual residual</text>
+<text x="348" y="393" fill="#475569" font-size="14">Trainable • 1.295% of backbone</text>
+<rect x="624" y="292" width="250" height="116" rx="14" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="642" y="323" fill="#334155" font-size="19" font-weight="700">Frozen Diff-BGM</text>
+<text x="642" y="349" fill="#475569" font-size="14">Adapted visual condition</text>
+<text x="642" y="371" fill="#475569" font-size="14">Teacher-forced denoising</text>
+<text x="642" y="393" fill="#475569" font-size="14">Backbone parameters fixed</text>
+<rect x="918" y="292" width="244" height="116" rx="14" fill="#fff" stroke="#cbd5e1"/>
+<text x="936" y="323" fill="#0f172a" font-size="19" font-weight="700">Denoised candidates</text>
+<text x="936" y="349" fill="#475569" font-size="14">Denoised piano-roll tensors</text>
+<text x="936" y="371" fill="#475569" font-size="14">Noise / timestep / label scale</text>
+<text x="936" y="393" fill="#475569" font-size="14">Inputs to decoding policies</text>
+<path d="M286 350 H324" fill="none" stroke="#64748b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M580 350 H618" fill="none" stroke="#64748b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M874 350 H912" fill="none" stroke="#64748b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M890 232 V252 H455 V286" fill="none" stroke="#64748b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="479" y="246" fill="#6366f1" font-size="13" font-weight="700">q</text>
+<path d="M160 408 V438 H748 V414" fill="none" stroke="#64748b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)" stroke-dasharray="6 5"/>
+<text x="292" y="432" fill="#64748b" font-size="13">Reference piano roll + noise</text>
+<text x="36" y="478" fill="#059669" font-size="12" font-weight="700">03   DECODE, SCORE &amp; SELECT</text>
+<rect x="36" y="500" width="360" height="110" rx="14" fill="#fff7ed" stroke="#fed7aa"/>
+<text x="54" y="531" fill="#9a3412" font-size="19" font-weight="700">Quadrant-aware decoding</text>
+<text x="54" y="557" fill="#475569" font-size="14">Q1/Q2: candidate reranking</text>
+<text x="54" y="579" fill="#475569" font-size="14">Q3: controlled export • Q4: focused search</text>
+<text x="54" y="601" fill="#475569" font-size="14">Pitch / density / duration / velocity / tempo</text>
+<rect x="440" y="500" width="400" height="110" rx="14" fill="#ecfdf5" stroke="#a7f3d0"/>
+<text x="458" y="531" fill="#065f46" font-size="19" font-weight="700">MFAE-guided selection</text>
+<text x="458" y="557" fill="#475569" font-size="14">EMOPIA-derived • 48 MIDI features</text>
+<text x="458" y="579" fill="#475569" font-size="14">Neighborhood probability + centroid score</text>
+<text x="458" y="601" fill="#475569" font-size="14">Select a candidate for each clip and target</text>
+<rect x="884" y="500" width="278" height="110" rx="14" fill="#ecfdf5" stroke="#a7f3d0"/>
+<text x="902" y="531" fill="#065f46" font-size="19" font-weight="700">Target MIDI</text>
+<text x="902" y="557" fill="#475569" font-size="14">Symbolic background music</text>
+<text x="902" y="579" fill="#475569" font-size="14">Four-quadrant output interface</text>
+<path d="M1040 408 V460 H300 V494" fill="none" stroke="#64748b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M396 555 H434" fill="none" stroke="#64748b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<path d="M840 555 H878" fill="none" stroke="#64748b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="36" y="646" fill="#64748b" font-size="13">Solid arrows: component interfaces    •    Dashed arrow: reference-music input to the diagnostic denoising protocol</text>
+</g></svg>
